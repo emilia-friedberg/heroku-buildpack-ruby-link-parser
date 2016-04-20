@@ -553,7 +553,7 @@ WARNING
       end
     end
     puts "links in /app/vendor"
-    puts Dir.entries("/app/vendor")
+    puts `ls -la /app/vendor`
   end
 
   def vendored_binaries
