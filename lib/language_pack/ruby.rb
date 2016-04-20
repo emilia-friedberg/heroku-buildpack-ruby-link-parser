@@ -631,6 +631,8 @@ WARNING
           env_vars["PATH"] = "#{ENV['PATH']}:#{vendored_binary_paths}" if prebuilt_binaries.any?
           puts "path env vars:"
           puts env_vars["PATH"]
+          puts 'pkg config:'
+          puts `cat vendor/link-grammar/lib/pkgconfig/link-grammar.pc`
           env_vars["BUNDLER_LIB_PATH"] = "#{bundler_path}" if ruby_version.ruby_version == "1.8.7"
           puts "Running: #{bundle_command}"
           instrument "ruby.bundle_install" do
