@@ -464,18 +464,6 @@ ERROR
     add_node_js_binary
   end
 
-  # symlink binaries from other build-packs to vendor where they can be used for gem native compilation
-  def link_prebuilt_binaries
-    pwd = Dir.pwd
-
-    if `ls vendor`.include?("link-grammar")
-      link_grammar_temporary_install = "#{pwd}/vendor/link-grammar"
-      unless `ls /app/vendor`.include?("link-grammar")
-        `ln -sf #{link_grammar_temporary_install} /app/vendor`
-      end
-    end
-  end
-
   # vendors binaries into the slug
   def install_binaries
     instrument 'ruby.install_binaries' do
@@ -548,6 +536,36 @@ WARNING
     end
   end
 
+  def prebuilt_binaries
+    Dir.entries("vendor").select do |dir|
+      ! dir.match(/heroku|^\.$|^\.\.$|ruby-|bundle|assets/)
+    end
+  end
+
+  # symlink binaries from other build-packs to /app/vendor where they can be used for gem native compilation
+  def link_prebuilt_binaries
+    pwd = Dir.pwd
+
+    prebuilt_binaries.each do |binary|
+      tmp_location = "#{pwd}/vendor/#{binary}"
+      unless `ls /app/vendor`.include?(binary)
+        `ln -sf #{tmp_location} /app/vendor`
+      end
+    end
+  end
+
+  def vendored_binaries
+    Dir.entries("/app/vendor").select do |dir|
+      ! dir.match(/heroku|^\.$|^\.\.$|ruby-|bundle|assets/)
+    end
+  end
+
+  def vendored_binary_paths
+    vendored_binaries.collect do |binary|
+      "/app/vendor/#{binary}/bin"
+    end.join(":")
+  end
+
   def bundler_binstubs_path
     "vendor/bundle/bin"
   end
@@ -603,15 +621,6 @@ WARNING
           pwd            = Dir.pwd
           bundler_path   = "#{pwd}/#{slug_vendor_base}/gems/#{BUNDLER_GEM_PATH}/lib"
 
-          vendored_binaries = Dir.entries("/app/vendor").select do |dir|
-            ! dir.match(/heroku|^\.$|^\.\.$|ruby-|bundle|assets/)
-          end
-
-          new_path ||= ENV['PATH'].dup
-          vendored_binaries.each do |binary|
-            new_path << ":/app/vendor/#{binary}/bin"
-          end
-
           # we need to set BUNDLE_CONFIG and BUNDLE_GEMFILE for
           # codon since it uses bundler.
           env_vars       = {
@@ -623,7 +632,7 @@ WARNING
             "RUBYOPT"                       => syck_hack,
             "NOKOGIRI_USE_SYSTEM_LIBRARIES" => "true"
           }
-          env_vars["PATH"] = new_path if vendored_binaries.any?
+          env_vars["PATH"] = "#{ENV['PATH']}:#{vendored_binary_paths}" if vendored_binaries.any?
           env_vars["BUNDLER_LIB_PATH"] = "#{bundler_path}" if ruby_version.ruby_version == "1.8.7"
           puts "Running: #{bundle_command}"
           instrument "ruby.bundle_install" do
