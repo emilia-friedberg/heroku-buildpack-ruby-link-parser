@@ -556,14 +556,8 @@ WARNING
     puts `ls -la /app/vendor`
   end
 
-  def vendored_binaries
-    Dir.entries("/app/vendor").select do |dir|
-      ! dir.match(/heroku|^\.$|^\.\.$|ruby-|bundle|assets/)
-    end
-  end
-
   def vendored_binary_paths
-    vendored_binaries.collect do |binary|
+    prebuilt_binaries.collect do |binary|
       "/app/vendor/#{binary}/bin"
     end.join(":")
   end
@@ -634,7 +628,7 @@ WARNING
             "RUBYOPT"                       => syck_hack,
             "NOKOGIRI_USE_SYSTEM_LIBRARIES" => "true"
           }
-          env_vars["PATH"] = "#{ENV['PATH']}:#{vendored_binary_paths}" if vendored_binaries.any?
+          env_vars["PATH"] = "#{ENV['PATH']}:#{vendored_binary_paths}" if prebuilt_binaries.any?
           puts "path env vars:"
           puts env_vars["PATH"]
           env_vars["BUNDLER_LIB_PATH"] = "#{bundler_path}" if ruby_version.ruby_version == "1.8.7"
