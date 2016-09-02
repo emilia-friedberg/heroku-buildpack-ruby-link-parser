@@ -11,3 +11,5 @@ group :development, :test do
   gem "netrc"
   gem "git", github: "hone/ruby-git", branch: "master"
 end
+
+gem 'linkparser', '~> 2.0'
